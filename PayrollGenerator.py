@@ -1,5 +1,43 @@
 import customtkinter as ctk
 from tkinter import StringVar, messagebox
+import sqlite3
+from datetime import datetime
+
+# SQLite Database Configuration
+DATABASE_NAME = 'payslips.db'
+
+# Function to initialize the database (create table if not exists)
+def init_db():
+    try:
+        conn = sqlite3.connect(DATABASE_NAME)
+        cursor = conn.cursor()
+        cursor.execute('''CREATE TABLE IF NOT EXISTS payslips (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            name TEXT,
+                            emp_id TEXT,
+                            department TEXT,
+                            designation TEXT,
+                            doj TEXT,
+                            dob TEXT,
+                            uan TEXT,
+                            pf_no TEXT,
+                            esi_no TEXT,
+                            basic_salary REAL,
+                            conveyance REAL,
+                            special_allowance REAL,
+                            pf_deduction REAL,
+                            esi_deduction REAL,
+                            pt_deduction REAL,
+                            total_earnings REAL,
+                            total_deductions REAL,
+                            net_pay REAL,
+                            created_at TEXT
+                        )''')
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except sqlite3.Error as err:
+        messagebox.showerror("Database Error", f"Error initializing database: {err}")
 
 # Function to generate the payslip
 def generate_payslip():
@@ -35,101 +73,50 @@ def generate_payslip():
         )
         return  # Stop further execution
 
-    # Clear the existing window
-    for widget in app.winfo_children():
-        widget.destroy()
-    
-    # Payslip Header
-    header_frame = ctk.CTkFrame(app)
-    header_frame.pack(fill="x", padx=20, pady=10)
-    
-    ctk.CTkLabel(header_frame, text="ALBERTIAN INSTITUTE OF SCIENCE AND TECHNOLOGY", font=("Arial", 20, "bold")).pack()
-    ctk.CTkLabel(header_frame, text="Kalamassery,Ernakulam", font=("Arial", 14)).pack()
-    ctk.CTkLabel(header_frame, text="Payslip for the Month", font=("Arial", 16, "bold")).pack(pady=10)
-    
-    # Employee Details Section
-    details_frame = ctk.CTkFrame(app)
-    details_frame.pack(fill="x", padx=20, pady=10)
-    
-    details = {
-        "Employee Name": name_var.get(),
-        "Employee ID": emp_id_var.get(),
-        "Department": department_var.get(),
-        "Designation": designation_var.get(),
-        "Date of Joining": doj_var.get(),
-        "Date of Birth": dob_var.get(),
-        "UAN": uan_var.get(),
-        "PF No": pf_no_var.get(),
-        "ESI No": esi_no_var.get(),
-    }
-    
-    for key, value in details.items():
-        row = ctk.CTkFrame(details_frame)
-        row.pack(fill="x", pady=2)
-        ctk.CTkLabel(row, text=f"{key}:", font=("Arial", 12, "bold"), width=150, anchor="w").pack(side="left")
-        ctk.CTkLabel(row, text=value, font=("Arial", 12)).pack(side="left")
-    
-    # Earnings and Deductions Section
-    earnings_deductions_frame = ctk.CTkFrame(app)
-    earnings_deductions_frame.pack(fill="x", padx=20, pady=10)
-    
-    # Earnings
-    earnings_frame = ctk.CTkFrame(earnings_deductions_frame)
-    earnings_frame.pack(side="left", fill="both", expand=True, padx=10)
-    
-    ctk.CTkLabel(earnings_frame, text="Earnings", font=("Arial", 14, "bold")).pack(pady=5)
-    
-    earnings = {
-        "Basic Salary": basic_var.get(),
-        "Conveyance": conveyance_var.get(),
-        "Special Allowance": special_var.get(),
-    }
-    
-    for key, value in earnings.items():
-        row = ctk.CTkFrame(earnings_frame)
-        row.pack(fill="x", pady=2)
-        ctk.CTkLabel(row, text=key, font=("Arial", 12), width=150, anchor="w").pack(side="left")
-        ctk.CTkLabel(row, text=value, font=("Arial", 12)).pack(side="right")
-    
-    # Deductions
-    deductions_frame = ctk.CTkFrame(earnings_deductions_frame)
-    deductions_frame.pack(side="right", fill="both", expand=True, padx=10)
-    
-    ctk.CTkLabel(deductions_frame, text="Deductions", font=("Arial", 14, "bold")).pack(pady=5)
-    
-    deductions = {
-        "PF Deduction": pf_deduction_var.get(),
-        "ESI Deduction": esi_deduction_var.get(),
-        "PT Deduction": pt_deduction_var.get()
-    }
-    
-    for key, value in deductions.items():
-        row = ctk.CTkFrame(deductions_frame)
-        row.pack(fill="x", pady=2)
-        ctk.CTkLabel(row, text=key, font=("Arial", 12), width=150, anchor="w").pack(side="left")
-        ctk.CTkLabel(row, text=value, font=("Arial", 12)).pack(side="right")
-    
-    # Totals Section
-    totals_frame = ctk.CTkFrame(app)
-    totals_frame.pack(fill="x", padx=20, pady=10)
-    
     # Calculate Totals
-    total_earnings = sum(float(value) for value in earnings.values() if value)
-    total_deductions = sum(float(value) for value in deductions.values() if value)
-    net_pay = total_earnings + total_deductions  # Net Pay = Total Earnings - Total Deductions
-    
-    # Display Totals
-    ctk.CTkLabel(totals_frame, text="Total Earnings", font=("Arial", 12, "bold")).pack(side="left", padx=10)
-    ctk.CTkLabel(totals_frame, text=f"{total_earnings:.2f}", font=("Arial", 12)).pack(side="right", padx=10)
-    
-    ctk.CTkLabel(totals_frame, text="Total Deductions", font=("Arial", 12, "bold")).pack(side="left", padx=10)
-    ctk.CTkLabel(totals_frame, text=f"{total_deductions:.2f}", font=("Arial", 12)).pack(side="right", padx=10)
-    
-    ctk.CTkLabel(totals_frame, text="Net Pay", font=("Arial", 14, "bold")).pack(side="left", padx=10)
-    ctk.CTkLabel(totals_frame, text=f"{net_pay:.2f}", font=("Arial", 14, "bold")).pack(side="right", padx=10)
-    
-    # Exit Button
-    ctk.CTkButton(app, text="Exit", command=app.quit).pack(pady=20)
+    total_earnings = sum(float(var.get()) for var in [basic_var, conveyance_var, special_var] if var.get())
+    total_deductions = sum(float(var.get()) for var in [pf_deduction_var, esi_deduction_var, pt_deduction_var] if var.get())
+    net_pay = total_earnings - total_deductions
+
+    # Store the payslip in the database
+    try:
+        conn = sqlite3.connect(DATABASE_NAME)
+        cursor = conn.cursor()
+        cursor.execute('''INSERT INTO payslips (
+                            name, emp_id, department, designation, doj, dob, uan, pf_no, esi_no,
+                            basic_salary, conveyance, special_allowance, pf_deduction, esi_deduction, pt_deduction,
+                            total_earnings, total_deductions, net_pay, created_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                        (name_var.get(), emp_id_var.get(), department_var.get(), designation_var.get(), doj_var.get(), dob_var.get(), uan_var.get(), pf_no_var.get(), esi_no_var.get(),
+                         float(basic_var.get()), float(conveyance_var.get()), float(special_var.get()), float(pf_deduction_var.get()), float(esi_deduction_var.get()), float(pt_deduction_var.get()),
+                         total_earnings, total_deductions, net_pay, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        messagebox.showinfo("Success", "Payslip generated and stored successfully!")
+    except sqlite3.Error as err:
+        messagebox.showerror("Database Error", f"Error storing payslip: {err}")
+
+# Function to delete a payslip by Employee ID
+def delete_payslip():
+    emp_id = emp_id_var.get().strip()
+    if not emp_id:
+        messagebox.showwarning("Input Error", "Please enter Employee ID to delete payslip.")
+        return
+
+    try:
+        conn = sqlite3.connect(DATABASE_NAME)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM payslips WHERE emp_id = ?", (emp_id,))
+        conn.commit()
+        if cursor.rowcount > 0:
+            messagebox.showinfo("Success", f"Payslip for Employee ID {emp_id} deleted successfully!")
+        else:
+            messagebox.showwarning("Not Found", f"No payslip found for Employee ID {emp_id}.")
+        cursor.close()
+        conn.close()
+    except sqlite3.Error as err:
+        messagebox.showerror("Database Error", f"Error deleting payslip: {err}")
 
 # Main Application Window
 app = ctk.CTk()
@@ -217,7 +204,11 @@ button_frame = ctk.CTkFrame(app)
 button_frame.pack(side="bottom", fill="x", padx=20, pady=10)
 
 ctk.CTkButton(button_frame, text="Generate Payslip", command=generate_payslip).pack(side="left", padx=10)
+ctk.CTkButton(button_frame, text="Delete Payslip", command=delete_payslip).pack(side="left", padx=10)
 ctk.CTkButton(button_frame, text="Exit", command=app.quit).pack(side="right", padx=10)
+
+# Initialize the database
+init_db()
 
 # Run the application
 app.mainloop()
