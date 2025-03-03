@@ -14,7 +14,7 @@ def init_db():
         cursor.execute('''CREATE TABLE IF NOT EXISTS payslips (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                             name TEXT,
-                            emp_id TEXT,
+                            emp_id TEXT UNIQUE,  -- Ensure Employee ID is unique
                             department TEXT,
                             designation TEXT,
                             doj TEXT,
@@ -73,6 +73,22 @@ def generate_payslip():
         )
         return  # Stop further execution
 
+    # Check if a payslip with the same Employee ID already exists
+    emp_id = emp_id_var.get().strip()
+    try:
+        conn = sqlite3.connect(DATABASE_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT emp_id FROM payslips WHERE emp_id = ?", (emp_id,))
+        existing_payslip = cursor.fetchone()
+        if existing_payslip:
+            messagebox.showerror("Error", f"A payslip with Employee ID {emp_id} already exists. Please use a unique Employee ID.")
+            cursor.close()
+            conn.close()
+            return  # Stop further execution
+    except sqlite3.Error as err:
+        messagebox.showerror("Database Error", f"Error checking for existing payslip: {err}")
+        return
+
     # Calculate Totals
     total_earnings = sum(float(var.get()) for var in [basic_var, conveyance_var, special_var] if var.get())
     total_deductions = sum(float(var.get()) for var in [pf_deduction_var, esi_deduction_var, pt_deduction_var] if var.get())
@@ -80,14 +96,12 @@ def generate_payslip():
 
     # Store the payslip in the database
     try:
-        conn = sqlite3.connect(DATABASE_NAME)
-        cursor = conn.cursor()
         cursor.execute('''INSERT INTO payslips (
                             name, emp_id, department, designation, doj, dob, uan, pf_no, esi_no,
                             basic_salary, conveyance, special_allowance, pf_deduction, esi_deduction, pt_deduction,
                             total_earnings, total_deductions, net_pay, created_at
                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                        (name_var.get(), emp_id_var.get(), department_var.get(), designation_var.get(), doj_var.get(), dob_var.get(), uan_var.get(), pf_no_var.get(), esi_no_var.get(),
+                        (name_var.get(), emp_id, department_var.get(), designation_var.get(), doj_var.get(), dob_var.get(), uan_var.get(), pf_no_var.get(), esi_no_var.get(),
                          float(basic_var.get()), float(conveyance_var.get()), float(special_var.get()), float(pf_deduction_var.get()), float(esi_deduction_var.get()), float(pt_deduction_var.get()),
                          total_earnings, total_deductions, net_pay, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
         conn.commit()
@@ -98,16 +112,24 @@ def generate_payslip():
         messagebox.showerror("Database Error", f"Error storing payslip: {err}")
 
     # Display the payslip in a new window
-    show_payslip(total_earnings, total_deductions, net_pay)
+    show_payslip(
+        name_var.get(), emp_id, department_var.get(), designation_var.get(), doj_var.get(), dob_var.get(), uan_var.get(), pf_no_var.get(), esi_no_var.get(),
+        float(basic_var.get()), float(conveyance_var.get()), float(special_var.get()),
+        float(pf_deduction_var.get()), float(esi_deduction_var.get()), float(pt_deduction_var.get()),
+        total_earnings, total_deductions, net_pay
+    )
 
     # Clear the input fields for the next entry
     clear_fields()
 
 # Function to display the payslip in a new window
-def show_payslip(total_earnings, total_deductions, net_pay):
+def show_payslip(name, emp_id, department, designation, doj, dob, uan, pf_no, esi_no,
+                 basic_salary, conveyance, special_allowance, pf_deduction, esi_deduction, pt_deduction,
+                 total_earnings, total_deductions, net_pay):
     payslip_window = ctk.CTkToplevel(app)
     payslip_window.title("Generated Payslip")
-    payslip_window.geometry("600x500")
+    payslip_window.geometry("960x740")  # Same size as the main window
+    payslip_window.grab_set()  # Ensure the focus stays on the payslip window
 
     # Payslip Header
     ctk.CTkLabel(payslip_window, text="ALBERTIAN INSTITUTE OF SCIENCE AND TECHNOLOGY", font=("Arial", 20, "bold")).pack(pady=10)
@@ -119,15 +141,15 @@ def show_payslip(total_earnings, total_deductions, net_pay):
     details_frame.pack(fill="x", padx=20, pady=10)
 
     details = {
-        "Employee Name": name_var.get(),
-        "Employee ID": emp_id_var.get(),
-        "Department": department_var.get(),
-        "Designation": designation_var.get(),
-        "Date of Joining": doj_var.get(),
-        "Date of Birth": dob_var.get(),
-        "UAN": uan_var.get(),
-        "PF No": pf_no_var.get(),
-        "ESI No": esi_no_var.get(),
+        "Employee Name": name,
+        "Employee ID": emp_id,
+        "Department": department,
+        "Designation": designation,
+        "Date of Joining": doj,
+        "Date of Birth": dob,
+        "UAN": uan,
+        "PF No": pf_no,
+        "ESI No": esi_no,
     }
 
     for key, value in details.items():
@@ -147,16 +169,16 @@ def show_payslip(total_earnings, total_deductions, net_pay):
     ctk.CTkLabel(earnings_frame, text="Earnings", font=("Arial", 14, "bold")).pack(pady=5)
 
     earnings = {
-        "Basic Salary": basic_var.get(),
-        "Conveyance": conveyance_var.get(),
-        "Special Allowance": special_var.get(),
+        "Basic Salary": basic_salary,
+        "Conveyance": conveyance,
+        "Special Allowance": special_allowance,
     }
 
     for key, value in earnings.items():
         row = ctk.CTkFrame(earnings_frame)
         row.pack(fill="x", pady=2)
         ctk.CTkLabel(row, text=key, font=("Arial", 12), width=150, anchor="w").pack(side="left")
-        ctk.CTkLabel(row, text=value, font=("Arial", 12)).pack(side="right")
+        ctk.CTkLabel(row, text=f"{value:.2f}", font=("Arial", 12)).pack(side="right")
 
     # Deductions
     deductions_frame = ctk.CTkFrame(earnings_deductions_frame)
@@ -165,16 +187,16 @@ def show_payslip(total_earnings, total_deductions, net_pay):
     ctk.CTkLabel(deductions_frame, text="Deductions", font=("Arial", 14, "bold")).pack(pady=5)
 
     deductions = {
-        "PF Deduction": pf_deduction_var.get(),
-        "ESI Deduction": esi_deduction_var.get(),
-        "PT Deduction": pt_deduction_var.get(),
+        "PF Deduction": pf_deduction,
+        "ESI Deduction": esi_deduction,
+        "PT Deduction": pt_deduction,
     }
 
     for key, value in deductions.items():
         row = ctk.CTkFrame(deductions_frame)
         row.pack(fill="x", pady=2)
         ctk.CTkLabel(row, text=key, font=("Arial", 12), width=150, anchor="w").pack(side="left")
-        ctk.CTkLabel(row, text=value, font=("Arial", 12)).pack(side="right")
+        ctk.CTkLabel(row, text=f"{value:.2f}", font=("Arial", 12)).pack(side="right")
 
     # Totals Section
     totals_frame = ctk.CTkFrame(payslip_window)
@@ -230,6 +252,37 @@ def delete_payslip():
         conn.close()
     except sqlite3.Error as err:
         messagebox.showerror("Database Error", f"Error deleting payslip: {err}")
+
+# Function to display payslip by Employee ID
+def display_payslip_by_empid():
+    emp_id = emp_id_var.get().strip()
+    if not emp_id:
+        messagebox.showwarning("Input Error", "Please enter Employee ID to display payslip.")
+        return
+
+    try:
+        conn = sqlite3.connect(DATABASE_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM payslips WHERE emp_id = ?", (emp_id,))
+        payslip_data = cursor.fetchone()
+        if payslip_data:
+            # Unpack the payslip data
+            (_, name, emp_id, department, designation, doj, dob, uan, pf_no, esi_no,
+             basic_salary, conveyance, special_allowance, pf_deduction, esi_deduction, pt_deduction,
+             total_earnings, total_deductions, net_pay, created_at) = payslip_data
+
+            # Display the payslip in a new window
+            show_payslip(
+                name, emp_id, department, designation, doj, dob, uan, pf_no, esi_no,
+                basic_salary, conveyance, special_allowance, pf_deduction, esi_deduction, pt_deduction,
+                total_earnings, total_deductions, net_pay
+            )
+        else:
+            messagebox.showwarning("Not Found", f"No payslip found for Employee ID {emp_id}.")
+        cursor.close()
+        conn.close()
+    except sqlite3.Error as err:
+        messagebox.showerror("Database Error", f"Error fetching payslip: {err}")
 
 # Main Application Window
 app = ctk.CTk()
@@ -318,6 +371,7 @@ button_frame.pack(side="bottom", fill="x", padx=20, pady=10)
 
 ctk.CTkButton(button_frame, text="Generate Payslip", command=generate_payslip).pack(side="left", padx=10)
 ctk.CTkButton(button_frame, text="Delete Payslip", command=delete_payslip).pack(side="left", padx=10)
+ctk.CTkButton(button_frame, text="Display Payslip", command=display_payslip_by_empid).pack(side="left", padx=10)
 ctk.CTkButton(button_frame, text="Exit", command=app.quit).pack(side="right", padx=10)
 
 # Initialize the database
