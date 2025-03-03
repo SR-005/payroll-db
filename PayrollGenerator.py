@@ -97,6 +97,119 @@ def generate_payslip():
     except sqlite3.Error as err:
         messagebox.showerror("Database Error", f"Error storing payslip: {err}")
 
+    # Display the payslip in a new window
+    show_payslip(total_earnings, total_deductions, net_pay)
+
+    # Clear the input fields for the next entry
+    clear_fields()
+
+# Function to display the payslip in a new window
+def show_payslip(total_earnings, total_deductions, net_pay):
+    payslip_window = ctk.CTkToplevel(app)
+    payslip_window.title("Generated Payslip")
+    payslip_window.geometry("600x500")
+
+    # Payslip Header
+    ctk.CTkLabel(payslip_window, text="ALBERTIAN INSTITUTE OF SCIENCE AND TECHNOLOGY", font=("Arial", 20, "bold")).pack(pady=10)
+    ctk.CTkLabel(payslip_window, text="Kalamassery, Ernakulam", font=("Arial", 14)).pack()
+    ctk.CTkLabel(payslip_window, text="Payslip for the Month", font=("Arial", 16, "bold")).pack(pady=10)
+
+    # Employee Details Section
+    details_frame = ctk.CTkFrame(payslip_window)
+    details_frame.pack(fill="x", padx=20, pady=10)
+
+    details = {
+        "Employee Name": name_var.get(),
+        "Employee ID": emp_id_var.get(),
+        "Department": department_var.get(),
+        "Designation": designation_var.get(),
+        "Date of Joining": doj_var.get(),
+        "Date of Birth": dob_var.get(),
+        "UAN": uan_var.get(),
+        "PF No": pf_no_var.get(),
+        "ESI No": esi_no_var.get(),
+    }
+
+    for key, value in details.items():
+        row = ctk.CTkFrame(details_frame)
+        row.pack(fill="x", pady=2)
+        ctk.CTkLabel(row, text=f"{key}:", font=("Arial", 12, "bold"), width=150, anchor="w").pack(side="left")
+        ctk.CTkLabel(row, text=value, font=("Arial", 12)).pack(side="left")
+
+    # Earnings and Deductions Section
+    earnings_deductions_frame = ctk.CTkFrame(payslip_window)
+    earnings_deductions_frame.pack(fill="x", padx=20, pady=10)
+
+    # Earnings
+    earnings_frame = ctk.CTkFrame(earnings_deductions_frame)
+    earnings_frame.pack(side="left", fill="both", expand=True, padx=10)
+
+    ctk.CTkLabel(earnings_frame, text="Earnings", font=("Arial", 14, "bold")).pack(pady=5)
+
+    earnings = {
+        "Basic Salary": basic_var.get(),
+        "Conveyance": conveyance_var.get(),
+        "Special Allowance": special_var.get(),
+    }
+
+    for key, value in earnings.items():
+        row = ctk.CTkFrame(earnings_frame)
+        row.pack(fill="x", pady=2)
+        ctk.CTkLabel(row, text=key, font=("Arial", 12), width=150, anchor="w").pack(side="left")
+        ctk.CTkLabel(row, text=value, font=("Arial", 12)).pack(side="right")
+
+    # Deductions
+    deductions_frame = ctk.CTkFrame(earnings_deductions_frame)
+    deductions_frame.pack(side="right", fill="both", expand=True, padx=10)
+
+    ctk.CTkLabel(deductions_frame, text="Deductions", font=("Arial", 14, "bold")).pack(pady=5)
+
+    deductions = {
+        "PF Deduction": pf_deduction_var.get(),
+        "ESI Deduction": esi_deduction_var.get(),
+        "PT Deduction": pt_deduction_var.get(),
+    }
+
+    for key, value in deductions.items():
+        row = ctk.CTkFrame(deductions_frame)
+        row.pack(fill="x", pady=2)
+        ctk.CTkLabel(row, text=key, font=("Arial", 12), width=150, anchor="w").pack(side="left")
+        ctk.CTkLabel(row, text=value, font=("Arial", 12)).pack(side="right")
+
+    # Totals Section
+    totals_frame = ctk.CTkFrame(payslip_window)
+    totals_frame.pack(fill="x", padx=20, pady=10)
+
+    ctk.CTkLabel(totals_frame, text="Total Earnings", font=("Arial", 12, "bold")).pack(side="left", padx=10)
+    ctk.CTkLabel(totals_frame, text=f"{total_earnings:.2f}", font=("Arial", 12)).pack(side="right", padx=10)
+
+    ctk.CTkLabel(totals_frame, text="Total Deductions", font=("Arial", 12, "bold")).pack(side="left", padx=10)
+    ctk.CTkLabel(totals_frame, text=f"{total_deductions:.2f}", font=("Arial", 12)).pack(side="right", padx=10)
+
+    ctk.CTkLabel(totals_frame, text="Net Pay", font=("Arial", 14, "bold")).pack(side="left", padx=10)
+    ctk.CTkLabel(totals_frame, text=f"{net_pay:.2f}", font=("Arial", 14, "bold")).pack(side="right", padx=10)
+
+    # Close Button
+    ctk.CTkButton(payslip_window, text="Close", command=payslip_window.destroy).pack(pady=20)
+
+# Function to clear input fields
+def clear_fields():
+    name_var.set("")
+    emp_id_var.set("")
+    department_var.set("")
+    designation_var.set("")
+    doj_var.set("")
+    dob_var.set("")
+    uan_var.set("")
+    pf_no_var.set("")
+    esi_no_var.set("")
+    basic_var.set("")
+    conveyance_var.set("")
+    special_var.set("")
+    pf_deduction_var.set("")
+    esi_deduction_var.set("")
+    pt_deduction_var.set("")
+
 # Function to delete a payslip by Employee ID
 def delete_payslip():
     emp_id = emp_id_var.get().strip()
