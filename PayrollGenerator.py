@@ -366,5 +366,15 @@ for label, var in fields_col3:
     ctk.CTkEntry(col3, textvariable=var).pack(fill="x", pady=5)
 
 # Buttons at the Bottom
+button_frame = ctk.CTkFrame(app)
+button_frame.pack(side="bottom", fill="x", padx=20, pady=10)
 
+ctk.CTkButton(button_frame, text="Generate Payslip", command=generate_payslip).pack(side="left", padx=10)
+ctk.CTkButton(button_frame, text="Delete Payslip", command=delete_payslip).pack(side="left", padx=10)
+ctk.CTkButton(button_frame, text="Display Payslip", command=display_payslip_by_empid).pack(side="left", padx=10)
+ctk.CTkButton(button_frame, text="Exit", command=app.quit).pack(side="right", padx=10)
+
+# Initialize the database
+init_db()
+# Run the application
 app.mainloop()
